@@ -10,7 +10,7 @@ import subprocess
 import sys
 import time
 
-CAND_DIR = pathlib.Path(".copperpilot/tmp/staging/v9_8_route/candidate/bldc_motor_cntroller_v9_8")
+CAND_DIR = pathlib.Path(".copperpilot/tmp/staging/v9_8_finish/candidate/bldc_motor_cntroller_v9_8")
 PCB = CAND_DIR / "bldc_motor_cntroller_v9_8.kicad_pcb"
 PRO = CAND_DIR / "bldc_motor_cntroller_v9_8.kicad_pro"
 JAVA = "/home/sam/.config/CopperPilot/runtimes/java/25.0.4.1+1/jdk-25.0.4.1+1-jre/bin/java"
@@ -30,6 +30,10 @@ def main() -> int:
     ap.add_argument("--extra-bcu-box", action="append", default=[])
     ap.add_argument("--refill", action="store_true")
     args = ap.parse_args()
+
+    if "__CP_ISO_" in PCB.read_text():
+        print("ABORT: PCB already contains __CP_ISO_ before shield!")
+        return 1
 
     t0 = time.time()
     bak_pcb = pathlib.Path(f".copperpilot/tmp/v9_8_pre_{args.tag}.kicad_pcb")
@@ -135,7 +139,7 @@ def main() -> int:
         "restore_rc": r_un.returncode,
     }, indent=2))
 
-    if status != "routed":
+    if status != "routed" or r_un.returncode != 0 or "__CP_ISO_" in PCB.read_text():
         shutil.copy2(bak_pcb, PCB)
         shutil.copy2(bak_pro, PRO)
         return 1
